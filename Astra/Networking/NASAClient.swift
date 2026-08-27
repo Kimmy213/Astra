@@ -3,7 +3,7 @@ import Foundation
 /// Every NASA request in the app goes through here.
 ///
 /// It is an `actor` so the shared `JSONDecoder` is only ever touched by one task
-/// at a time — the Mars grid fires several requests as the user changes sol, and
+/// at a time — the gallery fires several requests as the user changes filters, and
 /// `JSONDecoder` is not safe to use from multiple threads at once.
 actor NASAClient {
     private let session: URLSession
@@ -12,7 +12,7 @@ actor NASAClient {
     init(session: URLSession = .shared) {
         self.session = session
         let decoder = JSONDecoder()
-        // Handles img_src -> imgSrc, media_type -> mediaType, full_name -> fullName,
+        // Handles media_type -> mediaType, nasa_id -> nasaId, total_hits -> totalHits,
         // so no struct in the app needs its own CodingKeys.
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         self.decoder = decoder
@@ -26,11 +26,22 @@ actor NASAClient {
         try await fetch(Endpoint.apodRange(start: start, end: end))
     }
 
-    func marsPhotos(rover: String, sol: Int, camera: String?) async throws -> [MarsPhoto] {
-        let response: MarsPhotoResponse = try await fetch(
-            Endpoint.marsPhotos(rover: rover, sol: sol, camera: camera)
+    /// One page holds up to 100 results, which is exactly the cap the grid shows,
+    /// so there is no pagination to manage.
+    func searchImages(
+        query: String,
+        keyword: String? = nil,
+        yearRange: ClosedRange<Int>? = nil
+    ) async throws -> ImageSearchResult {
+        let response: ImageLibraryResponse = try await fetch(
+            Endpoint.imageSearch(query: query, keyword: keyword, yearRange: yearRange)
         )
-        return response.photos
+        return ImageSearchResult(
+            // Records with no image asset are dropped here rather than left to
+            // render as gaps in the grid.
+            items: response.collection.items.compactMap(NASAImageItem.init(item:)),
+            totalHits: response.collection.metadata.totalHits
+        )
     }
 
     private func fetch<T: Decodable>(_ endpoint: Endpoint) async throws -> T {
