@@ -14,7 +14,7 @@
 		AA0000000000000000000010 /* Exceptions for "Astra" folder in "Astra" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				"Secrets.example.swift",
+				Secrets.example.swift,
 			);
 			target = AA0000000000000000000005 /* Astra */;
 		};
