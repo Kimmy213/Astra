@@ -12,7 +12,7 @@ struct RootTabView: View {
             PlaceholderScreen(title: "Mars")
                 .tabItem { Label("Mars", systemImage: "circle.hexagongrid") }
 
-            PlaceholderScreen(title: "Favorites")
+            FavoritesScreen()
                 .tabItem { Label("Favorites", systemImage: "star") }
         }
     }

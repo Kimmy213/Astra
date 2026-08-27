@@ -1,20 +1,22 @@
+import SwiftData
 import SwiftUI
 
 struct TodayScreen: View {
     @State private var viewModel = TodayViewModel()
+    @Environment(\.modelContext) private var context
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 content
             }
-            .refreshable { await viewModel.load() }
+            .refreshable { await viewModel.load(context: context) }
             .navigationTitle("Today")
             .navigationBarTitleDisplayMode(.inline)
             .task {
                 // .task runs again whenever the tab is revisited, so guard on
                 // .idle to keep tab switching off the network.
-                if case .idle = viewModel.state { await viewModel.load() }
+                if case .idle = viewModel.state { await viewModel.load(context: context) }
             }
         }
     }
@@ -25,9 +27,13 @@ struct TodayScreen: View {
         case .idle, .loading:
             TodayShimmer()
         case .loaded(let apod):
-            TodayContent(apod: apod, showingPreviousDay: viewModel.didFallBackADay)
+            TodayContent(
+                apod: apod,
+                showingPreviousDay: viewModel.didFallBackADay,
+                showingSavedCopy: viewModel.isShowingSavedCopy
+            )
         case .failed(let error):
-            ErrorStateView(error: error) { await viewModel.load() }
+            ErrorStateView(error: error) { await viewModel.load(context: context) }
                 .frame(maxWidth: .infinity, minHeight: 420)
         }
     }
@@ -38,13 +44,29 @@ struct TodayScreen: View {
 private struct TodayContent: View {
     let apod: APODResponse
     let showingPreviousDay: Bool
+    let showingSavedCopy: Bool
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.modelContext) private var context
     @State private var isExpanded = false
-    /// M4 replaces this with the SwiftData-backed value from FavoritesManager.
-    @State private var isFavorite = false
+
+    /// Queried rather than held in @State so the star reflects what is actually
+    /// in the database, and updates itself if the photo is removed elsewhere.
+    @Query private var matchingFavorites: [FavoritePhoto]
+
+    private var isFavorite: Bool { !matchingFavorites.isEmpty }
 
     private static let heroHeight: CGFloat = 380
+
+    init(apod: APODResponse, showingPreviousDay: Bool, showingSavedCopy: Bool) {
+        self.apod = apod
+        self.showingPreviousDay = showingPreviousDay
+        self.showingSavedCopy = showingSavedCopy
+        let identifier = apod.favoriteIdentifier
+        _matchingFavorites = Query(
+            filter: #Predicate<FavoritePhoto> { $0.identifier == identifier }
+        )
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -58,8 +80,10 @@ private struct TodayContent: View {
                     .padding(20)
             }
 
-            if showingPreviousDay {
-                previousDayBanner
+            if showingSavedCopy {
+                banner("Showing your saved copy — NASA couldn't be reached.", systemImage: "arrow.down.circle")
+            } else if showingPreviousDay {
+                banner("Today's picture isn't published yet — showing the most recent one.", systemImage: "clock")
             }
 
             explanation
@@ -91,7 +115,7 @@ private struct TodayContent: View {
         }
         .overlay(alignment: .topTrailing) {
             FavoriteButton(isFavorite: isFavorite) {
-                isFavorite.toggle()
+                Task { await FavoritesManager(context: context).toggle(apod.favoriteDraft) }
             }
             .padding(16)
         }
@@ -130,36 +154,37 @@ private struct TodayContent: View {
             Text(apod.title)
                 .font(.system(.largeTitle, design: .serif, weight: .semibold))
 
-            HStack(spacing: 6) {
-                Text(DateFormatters.displayString(fromAPIDate: apod.date))
-                if let credit {
-                    Text("·")
-                    Text(credit)
-                }
-            }
-            .font(.footnote)
-            .opacity(0.85)
+            Text(metadataLine)
+                .font(.footnote)
+                .lineLimit(2)
+                .opacity(0.85)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// NASA sends `copyright` only for pictures that are not public domain, and
-    /// often with a trailing newline.
-    private var credit: String? {
-        guard let raw = apod.copyright?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !raw.isEmpty else { return nil }
-        return raw
+    private var metadataLine: String {
+        let date = DateFormatters.displayString(fromAPIDate: apod.date)
+        guard let credit else { return date }
+        return "\(date) · \(credit)"
     }
 
-    private var previousDayBanner: some View {
-        Label(
-            "Today's picture isn't published yet — showing the most recent one.",
-            systemImage: "clock"
-        )
-        .font(.footnote)
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.yellow.opacity(0.15))
+    /// NASA sends `copyright` only for pictures that are not public domain, and
+    /// formats it for a web page — real values arrive as
+    /// "Victor Lima\n Text:\nCecilia Chirenti (NASA GSFC, UMCP, CRESST II)".
+    /// Left alone those newlines wrap the credit into a narrow column that runs
+    /// straight through the title, so all whitespace is collapsed to one space.
+    private var credit: String? {
+        guard let raw = apod.copyright else { return nil }
+        let collapsed = raw.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        return collapsed.isEmpty ? nil : collapsed
+    }
+
+    private func banner(_ message: String, systemImage: String) -> some View {
+        Label(message, systemImage: systemImage)
+            .font(.footnote)
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.yellow.opacity(0.15))
     }
 
     private var explanation: some View {

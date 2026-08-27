@@ -1,13 +1,17 @@
 import Foundation
 import Observation
+import SwiftData
 
 @MainActor
 @Observable
 final class TodayViewModel {
     private(set) var state: LoadState<APODResponse> = .idle
 
-    /// Set when NASA had no picture for today and we showed yesterday's instead.
+    /// Set when NASA had no picture for today and we showed the previous day's.
     private(set) var didFallBackADay = false
+
+    /// Set when the network failed and we fell back to the SwiftData cache.
+    private(set) var isShowingSavedCopy = false
 
     private let client: NASAClient
 
@@ -15,7 +19,7 @@ final class TodayViewModel {
         self.client = client
     }
 
-    func load() async {
+    func load(context: ModelContext) async {
         // A pull to refresh should leave the current picture on screen rather
         // than replacing it with a shimmer, so only the first load goes through
         // .loading.
@@ -25,11 +29,13 @@ final class TodayViewModel {
 
         do {
             let apod = try await fetchTodayOrYesterday()
+            isShowingSavedCopy = false
+            cache(apod, in: context)
             state = .loaded(apod)
         } catch let error as NetworkError {
-            state = .failed(error)
+            state = fallbackState(for: error, in: context)
         } catch {
-            state = .failed(.requestFailed(underlying: error))
+            state = fallbackState(for: .requestFailed(underlying: error), in: context)
         }
     }
 
@@ -48,5 +54,32 @@ final class TodayViewModel {
             didFallBackADay = true
             return apod
         }
+    }
+
+    /// Offline is only an error if there is nothing saved to fall back to.
+    private func fallbackState(
+        for error: NetworkError,
+        in context: ModelContext
+    ) -> LoadState<APODResponse> {
+        guard let saved = mostRecentCached(in: context) else {
+            isShowingSavedCopy = false
+            return .failed(error)
+        }
+        isShowingSavedCopy = true
+        return .loaded(saved.asResponse)
+    }
+
+    private func cache(_ apod: APODResponse, in context: ModelContext) {
+        // The unique constraint on `date` turns a repeat insert into an update.
+        context.insert(CachedAPOD(from: apod))
+        try? context.save()
+    }
+
+    private func mostRecentCached(in context: ModelContext) -> CachedAPOD? {
+        var descriptor = FetchDescriptor<CachedAPOD>(
+            sortBy: [SortDescriptor(\.date, order: .reverse)]
+        )
+        descriptor.fetchLimit = 1
+        return try? context.fetch(descriptor).first
     }
 }
