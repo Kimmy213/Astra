@@ -124,28 +124,9 @@ private struct TodayContent: View {
     @ViewBuilder
     private var media: some View {
         if apod.isImage {
-            // A single hero image, not a scrolling grid, so the built-in loader is
-            // adequate here. M5 swaps this for AsyncCachedImage once ImageStore exists.
-            AsyncImage(url: apod.displayURL) { phase in
-                switch phase {
-                case .success(let image):
-                    image.resizable().scaledToFill()
-                case .failure:
-                    unavailableCard
-                default:
-                    ShimmerView()
-                }
-            }
+            AsyncCachedImage(url: apod.displayURL)
         } else {
             VideoPlaceholderCard(apod: apod)
-        }
-    }
-
-    private var unavailableCard: some View {
-        ZStack {
-            Rectangle().fill(.quaternary)
-            Label("Image unavailable", systemImage: "photo")
-                .foregroundStyle(.secondary)
         }
     }
 

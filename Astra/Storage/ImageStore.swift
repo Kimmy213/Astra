@@ -107,6 +107,12 @@ final class ImageStore: @unchecked Sendable {
         return image
     }
 
+    /// A synchronous peek at the memory tier only, so a view can render an
+    /// already-decoded image in the same frame instead of flashing a placeholder.
+    func memoryImage(for url: URL) -> UIImage? {
+        memory.object(forKey: cacheKey(for: url) as NSString)
+    }
+
     /// A URL is not a legal file name, and `hashValue` changes between launches,
     /// so the cache is keyed on a stable hash of the address.
     private func cacheKey(for url: URL) -> String {
