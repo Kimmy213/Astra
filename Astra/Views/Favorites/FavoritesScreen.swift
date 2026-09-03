@@ -8,6 +8,7 @@ struct FavoritesScreen: View {
     @Environment(\.modelContext) private var context
     @State private var filter: FavoriteFilter = .all
     @State private var filesOnDisk = 0
+    @Namespace private var heroNamespace
 
     var body: some View {
         NavigationStack {
@@ -29,6 +30,10 @@ struct FavoritesScreen: View {
                 }
             }
             .navigationTitle("Favorites")
+            .navigationDestination(for: DetailPhoto.self) { photo in
+                PhotoDetailScreen(photo: photo)
+                    .navigationTransition(.zoom(sourceID: photo.id, in: heroNamespace))
+            }
             .toolbar {
                 if !favorites.isEmpty {
                     ToolbarItem(placement: .topBarTrailing) {
@@ -59,7 +64,11 @@ struct FavoritesScreen: View {
     private var list: some View {
         List {
             ForEach(visibleFavorites) { favorite in
-                FavoriteRow(favorite: favorite)
+                NavigationLink(value: DetailPhoto(favorite: favorite)) {
+                    FavoriteRow(favorite: favorite)
+                }
+                .buttonStyle(.plain)
+                .matchedTransitionSource(id: favorite.identifier, in: heroNamespace)
                     .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                     .listRowSeparator(.hidden)
                     .swipeActions(edge: .trailing) {

@@ -8,6 +8,7 @@ struct MarsGalleryScreen: View {
     @AppStorage(AppSettings.Key.gridColumnCount) private var columnCount = 2
 
     @State private var keyword: String?
+    @Namespace private var heroNamespace
 
     private var rover: Rover {
         get { Rover(rawValue: roverRaw) ?? .curiosity }
@@ -37,6 +38,10 @@ struct MarsGalleryScreen: View {
             .navigationTitle("Mars")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarTrailing) { columnToggle } }
+            .navigationDestination(for: DetailPhoto.self) { photo in
+                PhotoDetailScreen(photo: photo)
+                    .navigationTransition(.zoom(sourceID: photo.id, in: heroNamespace))
+            }
             // One task keyed on every filter at once: changing any of them
             // cancels the request in flight instead of racing it.
             .task(id: filters) { await viewModel.load(filters) }
@@ -100,7 +105,11 @@ struct MarsGalleryScreen: View {
         ScrollView {
             LazyVGrid(columns: columns, spacing: 4) {
                 ForEach(result.items) { item in
-                    GalleryCell(item: item)
+                    NavigationLink(value: DetailPhoto(item: item)) {
+                        GalleryCell(item: item)
+                    }
+                    .buttonStyle(.plain)
+                    .matchedTransitionSource(id: item.favoriteIdentifier, in: heroNamespace)
                 }
             }
             .padding(.horizontal, 4)

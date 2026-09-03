@@ -1,6 +1,38 @@
 import Foundation
 
 enum DateFormatters {
+    /// The calendar every date computation in the app goes through.
+    ///
+    /// Never `Calendar.current`: on a device set to Thailand that is the Buddhist
+    /// calendar, which would put the month grid on the wrong days and make the
+    /// June 1995 lower bound meaningless. The locale is kept so the week still
+    /// starts on the user's usual day.
+    static let gregorian: Calendar = {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = Locale.current
+        calendar.timeZone = TimeZone(identifier: "America/New_York") ?? .current
+        return calendar
+    }()
+
+    /// "3 Sep 2026, 09:56" for a real Date. Same reason as `display`: without a
+    /// pinned calendar this renders as "3 Sep 2569 BE" on a Thai device.
+    static func timestamp(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = gregorian
+        formatter.timeZone = .current
+        formatter.setLocalizedDateFormatFromTemplate("ddMMMyjmm")
+        return formatter.string(from: date)
+    }
+
+    /// "August 2026", for the calendar header.
+    static func monthTitle(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = gregorian
+        formatter.timeZone = gregorian.timeZone
+        formatter.setLocalizedDateFormatFromTemplate("MMMMy")
+        return formatter.string(from: date)
+    }
+
     /// The format NASA's APOD API expects and returns: `2026-08-27`.
     ///
     /// `en_US_POSIX` keeps the output fixed regardless of the user's device locale —
