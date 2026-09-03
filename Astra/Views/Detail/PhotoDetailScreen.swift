@@ -110,7 +110,8 @@ struct PhotoDetailScreen: View {
             }
         }
         .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: 760, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .center)
         .background(Color(.systemBackground))
     }
 

@@ -14,6 +14,9 @@ struct CalendarScreen: View {
                 content
                 Spacer(minLength: 0)
             }
+            // Without a cap each day cell becomes enormous on an iPad.
+            .frame(maxWidth: 720)
+            .frame(maxWidth: .infinity)
             .padding(.horizontal, 12)
             .navigationTitle("Calendar")
             .navigationBarTitleDisplayMode(.inline)

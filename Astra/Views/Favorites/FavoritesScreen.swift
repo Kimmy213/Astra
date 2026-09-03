@@ -89,7 +89,7 @@ struct FavoritesScreen: View {
         .safeAreaInset(edge: .bottom) {
             // Counting the actual files makes the offline claim checkable rather
             // than just asserted.
-            Text("\(visibleFavorites.count) saved · \(filesOnDisk) images on this device")
+            Text("\(visibleFavorites.count) saved · ^[\(filesOnDisk) image](inflect: true) on this device")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .padding(.vertical, 8)

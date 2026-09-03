@@ -47,6 +47,7 @@ private struct TodayContent: View {
     let showingSavedCopy: Bool
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.modelContext) private var context
     @State private var isExpanded = false
 
@@ -56,7 +57,14 @@ private struct TodayContent: View {
 
     private var isFavorite: Bool { !matchingFavorites.isEmpty }
 
-    private static let heroHeight: CGFloat = 380
+    /// A fixed height looks lost on an iPad, where the window is three times
+    /// taller than a phone's.
+    private var heroHeight: CGFloat {
+        horizontalSizeClass == .regular ? 560 : 380
+    }
+
+    /// Long lines are hard to read; text stops widening past this.
+    private static let readableWidth: CGFloat = 760
 
     init(apod: APODResponse, showingPreviousDay: Bool, showingSavedCopy: Bool) {
         self.apod = apod
@@ -94,7 +102,7 @@ private struct TodayContent: View {
         ZStack(alignment: .bottomLeading) {
             media
                 .frame(maxWidth: .infinity)
-                .frame(height: Self.heroHeight)
+                .frame(height: heroHeight)
                 .clipped()
 
             if !dynamicTypeSize.isAccessibilitySize {
@@ -180,6 +188,8 @@ private struct TodayContent: View {
             .font(.subheadline.weight(.semibold))
         }
         .padding(20)
+        .frame(maxWidth: Self.readableWidth, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .center)
     }
 }
 

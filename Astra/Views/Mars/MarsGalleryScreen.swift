@@ -9,6 +9,7 @@ struct MarsGalleryScreen: View {
 
     @State private var keyword: String?
     @Namespace private var heroNamespace
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     private var rover: Rover {
         get { Rover(rawValue: roverRaw) ?? .curiosity }
@@ -122,8 +123,11 @@ struct MarsGalleryScreen: View {
         }
     }
 
+    /// The stored count is the user's choice for a phone. An iPad has room for
+    /// twice as many at the same cell size.
     private var columns: [GridItem] {
-        Array(repeating: GridItem(.flexible(), spacing: 4), count: columnCount)
+        let count = horizontalSizeClass == .regular ? columnCount * 2 : columnCount
+        return Array(repeating: GridItem(.flexible(), spacing: 4), count: count)
     }
 
     private static var currentYear: Int {
