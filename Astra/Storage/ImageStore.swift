@@ -1,5 +1,7 @@
+import CoreGraphics
 import CryptoKit
 import Foundation
+import ImageIO
 import UIKit
 
 /// Where image files live.
@@ -80,15 +82,21 @@ final class ImageStore: @unchecked Sendable {
 
     // MARK: - General image loading (memory → disk cache → network)
 
-    func image(for url: URL) async throws -> UIImage {
-        let key = cacheKey(for: url)
+    /// `maxPixelSize` downsamples while decoding.
+    ///
+    /// A month of APOD pictures is 31 full-resolution images, and NASA publishes
+    /// no thumbnails. Decoded at full size that is roughly 100MB of bitmaps in
+    /// memory at once; at 400px it is closer to 15MB. It does not reduce what is
+    /// downloaded — only what is decoded and held.
+    func image(for url: URL, maxPixelSize: CGFloat? = nil) async throws -> UIImage {
+        let key = cacheKey(for: url, maxPixelSize: maxPixelSize)
 
         if let cached = memory.object(forKey: key as NSString) { return cached }
 
         let fileURL = cacheDirectory.appending(path: key)
         if let image = await Task.detached(priority: .userInitiated, operation: {
             guard let data = try? Data(contentsOf: fileURL) else { return UIImage?.none }
-            return UIImage(data: data)
+            return Self.decode(data, maxPixelSize: maxPixelSize)
         }).value {
             memory.setObject(image, forKey: key as NSString)
             return image
@@ -98,7 +106,7 @@ final class ImageStore: @unchecked Sendable {
         if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
             throw NetworkError.badStatus(code: http.statusCode)
         }
-        guard let image = UIImage(data: data) else {
+        guard let image = Self.decode(data, maxPixelSize: maxPixelSize) else {
             throw NetworkError.decodingFailed(underlying: URLError(.cannotDecodeContentData))
         }
 
@@ -107,18 +115,39 @@ final class ImageStore: @unchecked Sendable {
         return image
     }
 
+    /// Decodes image data, optionally shrinking it in the process. ImageIO does
+    /// the downsampling during decode, so the full-size bitmap is never created.
+    private static func decode(_ data: Data, maxPixelSize: CGFloat?) -> UIImage? {
+        guard let maxPixelSize else { return UIImage(data: data) }
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
+
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceShouldCacheImmediately: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxPixelSize
+        ]
+        guard let thumbnail = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary)
+        else { return UIImage(data: data) }
+        return UIImage(cgImage: thumbnail)
+    }
+
     /// A synchronous peek at the memory tier only, so a view can render an
     /// already-decoded image in the same frame instead of flashing a placeholder.
-    func memoryImage(for url: URL) -> UIImage? {
-        memory.object(forKey: cacheKey(for: url) as NSString)
+    func memoryImage(for url: URL, maxPixelSize: CGFloat? = nil) -> UIImage? {
+        memory.object(forKey: cacheKey(for: url, maxPixelSize: maxPixelSize) as NSString)
     }
 
     /// A URL is not a legal file name, and `hashValue` changes between launches,
     /// so the cache is keyed on a stable hash of the address.
-    private func cacheKey(for url: URL) -> String {
-        SHA256.hash(data: Data(url.absoluteString.utf8))
+    /// The size is part of the key, so a 400px grid copy is never handed to the
+    /// detail screen, which asks for the full-size one.
+    private func cacheKey(for url: URL, maxPixelSize: CGFloat?) -> String {
+        let digest = SHA256.hash(data: Data(url.absoluteString.utf8))
             .map { String(format: "%02x", $0) }
             .joined()
+        guard let maxPixelSize else { return digest }
+        return "\(digest)-\(Int(maxPixelSize))"
     }
 
     // MARK: - Diagnostics

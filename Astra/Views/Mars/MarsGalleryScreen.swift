@@ -68,7 +68,7 @@ struct MarsGalleryScreen: View {
 
     private var columnToggle: some View {
         Button {
-            withAnimation(.snappy) {
+            withAnimation(Theme.tap) {
                 columnCount = columnCount == 2 ? 3 : 2
             }
         } label: {
@@ -89,7 +89,8 @@ struct MarsGalleryScreen: View {
                 EmptyStateView(
                     title: "Nothing from \(year)",
                     message: "No \(rover.title) photos match this filter. Try another year or clear the filter.",
-                    systemImage: "magnifyingglass"
+                    systemImage: "magnifyingglass",
+                    overStarfield: true
                 )
                 .frame(maxHeight: .infinity)
             } else {
@@ -140,7 +141,7 @@ private struct GalleryCell: View {
         // image grow past its own frame and overlap the next row.
         Color.clear
             .aspectRatio(1, contentMode: .fit)
-            .overlay { AsyncCachedImage(url: item.thumbnailURL) }
+            .overlay { AsyncCachedImage(url: item.thumbnailURL, maxPixelSize: 600) }
             .clipShape(.rect(cornerRadius: 8))
             .accessibilityLabel(item.title)
     }

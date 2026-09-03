@@ -7,6 +7,9 @@ import SwiftUI
 /// scrolling a grid back up re-downloads every image that left the screen.
 struct AsyncCachedImage: View {
     let url: URL?
+    /// Grids pass a size so a screen full of pictures is not decoded at full
+    /// resolution. The detail screen leaves it nil.
+    var maxPixelSize: CGFloat?
 
     @State private var image: UIImage?
     @State private var didFail = false
@@ -39,14 +42,14 @@ struct AsyncCachedImage: View {
 
         // Checked synchronously first: without this, an image already in memory
         // would still flash a shimmer for a frame when scrolling back.
-        if let inMemory = ImageStore.shared.memoryImage(for: url) {
+        if let inMemory = ImageStore.shared.memoryImage(for: url, maxPixelSize: maxPixelSize) {
             image = inMemory
             return
         }
 
         image = nil
         do {
-            let loaded = try await ImageStore.shared.image(for: url)
+            let loaded = try await ImageStore.shared.image(for: url, maxPixelSize: maxPixelSize)
             guard !Task.isCancelled else { return }
             withAnimation(.easeOut(duration: 0.2)) { image = loaded }
         } catch {

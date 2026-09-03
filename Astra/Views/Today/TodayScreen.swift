@@ -133,7 +133,7 @@ private struct TodayContent: View {
     private var titleBlock: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(apod.title)
-                .font(.system(.largeTitle, design: .serif, weight: .semibold))
+                .font(Theme.title())
 
             Text(metadataLine)
                 .font(.footnote)
@@ -175,7 +175,7 @@ private struct TodayContent: View {
                 .lineLimit(isExpanded ? nil : 4)
 
             Button(isExpanded ? "Read less" : "Read more") {
-                withAnimation(.snappy) { isExpanded.toggle() }
+                withAnimation(Theme.tap) { isExpanded.toggle() }
             }
             .font(.subheadline.weight(.semibold))
         }

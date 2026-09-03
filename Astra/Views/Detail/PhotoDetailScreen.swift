@@ -82,7 +82,7 @@ struct PhotoDetailScreen: View {
     private var textContent: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(photo.title)
-                .font(.system(.title, design: .serif, weight: .semibold))
+                .font(Theme.title(.title))
 
             if isShowingHighRes {
                 Label("Full resolution", systemImage: "sparkle.magnifyingglass")
@@ -173,7 +173,7 @@ struct PhotoDetailScreen: View {
         guard let full = try? await ImageStore.shared.image(for: fullURL) else { return }
         guard !Task.isCancelled else { return }
 
-        withAnimation(.easeInOut(duration: 0.45)) {
+        withAnimation(Theme.crossfade) {
             image = full
             isShowingHighRes = true
         }

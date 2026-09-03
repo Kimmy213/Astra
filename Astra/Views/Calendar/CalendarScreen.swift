@@ -81,7 +81,7 @@ struct CalendarScreen: View {
     private func step(by months: Int) {
         guard let next = calendar.date(byAdding: .month, value: months, to: month) else { return }
         guard months < 0 ? canGoBack : canGoForward else { return }
-        withAnimation(.snappy(duration: 0.25)) { month = next }
+        withAnimation(Theme.tap) { month = next }
     }
 
     private var canGoBack: Bool {

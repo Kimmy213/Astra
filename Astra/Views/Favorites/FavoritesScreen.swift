@@ -17,7 +17,8 @@ struct FavoritesScreen: View {
                     EmptyStateView(
                         title: "No favourites yet",
                         message: "Tap the star on any picture and it's kept here — image and all, even with no connection.",
-                        systemImage: "star"
+                        systemImage: "star",
+                        overStarfield: true
                     )
                 } else if visibleFavorites.isEmpty {
                     EmptyStateView(
@@ -30,6 +31,9 @@ struct FavoritesScreen: View {
                 }
             }
             .navigationTitle("Favorites")
+            // The empty state's starfield runs behind the bar, so the title
+            // needs light text or it disappears into the night sky.
+            .toolbarColorScheme(favorites.isEmpty ? .dark : nil, for: .navigationBar)
             .navigationDestination(for: DetailPhoto.self) { photo in
                 PhotoDetailScreen(photo: photo)
                     .navigationTransition(.zoom(sourceID: photo.id, in: heroNamespace))

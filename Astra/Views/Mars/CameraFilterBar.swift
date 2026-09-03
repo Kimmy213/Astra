@@ -27,7 +27,7 @@ struct CameraFilterBar: View {
         let isSelected = selection == value
 
         return Button {
-            withAnimation(.snappy(duration: 0.28)) { selection = value }
+            withAnimation(Theme.tap) { selection = value }
         } label: {
             Text(title)
                 .font(.subheadline.weight(.medium))
