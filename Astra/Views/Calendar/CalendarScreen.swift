@@ -4,6 +4,7 @@ struct CalendarScreen: View {
     @State private var viewModel = CalendarViewModel()
     @State private var month = DateFormatters.gregorian.startOfMonth(for: Date())
     @Namespace private var heroNamespace
+    @State private var isPickingMonth = false
 
     private var calendar: Calendar { DateFormatters.gregorian }
 
@@ -42,9 +43,25 @@ struct CalendarScreen: View {
 
             Spacer()
 
-            Text(DateFormatters.monthTitle(for: month))
-                .font(.headline)
-                .contentTransition(.numericText())
+            Button {
+                isPickingMonth = true
+            } label: {
+                HStack(spacing: 4) {
+                    Text(DateFormatters.monthTitle(for: month))
+                        .font(.headline)
+                        .contentTransition(.numericText())
+                    Image(systemName: "chevron.down")
+                        .font(.caption2.weight(.semibold))
+                }
+            }
+            .foregroundStyle(.primary)
+            .accessibilityLabel("\(DateFormatters.monthTitle(for: month)). Choose a month")
+            .popover(isPresented: $isPickingMonth) {
+                MonthYearPicker(month: $month)
+                    // A popover on the phone too, rather than a sheet: it keeps
+                    // the grid visible behind it while you spin the wheels.
+                    .presentationCompactAdaptation(.popover)
+            }
 
             Spacer()
 

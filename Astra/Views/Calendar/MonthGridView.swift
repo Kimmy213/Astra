@@ -107,7 +107,11 @@ private struct DayCell: View {
             .aspectRatio(1, contentMode: .fit)
             .overlay {
                 if apod.isImage {
-                    AsyncCachedImage(url: apod.displayURL, maxPixelSize: 400)
+                    AsyncCachedImage(
+                        url: apod.displayURL,
+                        maxPixelSize: 400,
+                        placeholderURL: apod.calendarThumbnailURL
+                    )
                 } else {
                     // Video days have no thumbnail to show.
                     ZStack {

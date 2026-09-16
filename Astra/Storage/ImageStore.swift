@@ -25,6 +25,7 @@ final class ImageStore: @unchecked Sendable {
 
     private let memory = NSCache<NSString, UIImage>()
     private let fileManager = FileManager.default
+
     private let favoritesDirectory: URL
     private let cacheDirectory: URL
 
@@ -110,7 +111,14 @@ final class ImageStore: @unchecked Sendable {
             throw NetworkError.decodingFailed(underlying: URLError(.cannotDecodeContentData))
         }
 
-        try? data.write(to: fileURL, options: .atomic)
+        // For a sized request keep the shrunken copy, not the original. The file
+        // is keyed by size, so storing the original meant a warm launch re-read
+        // the whole picture to draw a 400px cell — and one APOD this month is a
+        // 16MB GIF. The full-size path still caches the bytes untouched.
+        let bytesToCache = maxPixelSize == nil
+            ? data
+            : (image.jpegData(compressionQuality: 0.8) ?? data)
+        try? bytesToCache.write(to: fileURL, options: .atomic)
         memory.setObject(image, forKey: key as NSString)
         return image
     }
