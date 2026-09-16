@@ -12,6 +12,7 @@ struct PhotoDetailScreen: View {
     @State private var hasNoImage = false
     @State private var isShowingHighRes = false
     @State private var isZooming = false
+    @State private var isPlayingVideo = false
     /// Drives the navigation bar background: transparent over the hero image,
     /// solid once the text scrolls up to it.
     @State private var hasScrolledPastHeader = false
@@ -50,6 +51,11 @@ struct PhotoDetailScreen: View {
         .navigationBarTitleDisplayMode(.inline)
         .task(id: photo.id) { await loadImage() }
         .fullScreenCover(isPresented: $isZooming) { zoomCover }
+        .fullScreenCover(isPresented: $isPlayingVideo) {
+            if let videoURL = photo.videoURL {
+                APODVideoScreen(url: videoURL)
+            }
+        }
     }
 
     // MARK: - Header with parallax
@@ -84,7 +90,9 @@ struct PhotoDetailScreen: View {
             .onTapGesture {
                 // A video day has nothing to zoom into, and the thumbnail is 60
                 // pixels wide, so the tap opens the film instead.
-                if photo.videoURL == nil, image != nil, !isShowingPlaceholder {
+                if photo.videoURL != nil {
+                    isPlayingVideo = true
+                } else if image != nil, !isShowingPlaceholder {
                     isZooming = true
                 }
             }
@@ -102,8 +110,10 @@ struct PhotoDetailScreen: View {
 
     @ViewBuilder
     private var playButton: some View {
-        if let videoURL = photo.videoURL {
-            Link(destination: videoURL) {
+        if photo.videoURL != nil {
+            Button {
+                isPlayingVideo = true
+            } label: {
                 Image(systemName: "play.fill")
                     .font(.system(size: 30))
                     .foregroundStyle(.white)
