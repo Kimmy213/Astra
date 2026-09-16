@@ -69,9 +69,9 @@ private struct MoviePlayer: View {
 /// Hosts anything AVPlayer cannot open.
 ///
 /// A YouTube embed cannot simply be handed to a web view: loaded as a bare URL
-/// it has no page around it, so YouTube refuses with "error 153". Wrapping it in
-/// a minimal page served from a youtube.com base URL gives the player the origin
-/// it insists on. Anything else — APOD's own interactive pages — loads directly.
+/// it has no page around it, so YouTube refuses with "error 153". It needs a real
+/// page around it, declaring a real origin — see `embedOrigin` below. Anything
+/// else, such as APOD's own interactive pages, loads directly.
 private struct EmbeddedPlayer: View {
     let url: URL
 
