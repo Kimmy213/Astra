@@ -8,6 +8,8 @@ struct PhotoDetailScreen: View {
     @Query private var matchingFavorites: [FavoritePhoto]
 
     @State private var image: UIImage?
+    @State private var isShowingPlaceholder = false
+    @State private var hasNoImage = false
     @State private var isShowingHighRes = false
     @State private var isZooming = false
     /// Drives the navigation bar background: transparent over the hero image,
@@ -65,16 +67,51 @@ struct PhotoDetailScreen: View {
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFill()
+                        // A video day's only still is 60 pixels wide, so it is blurred on
+                        // purpose — it reads as a backdrop for the play button rather
+                        // than as a bad photograph.
+                        .blur(radius: isShowingPlaceholder || photo.videoURL != nil ? 6 : 0)
+                } else if hasNoImage {
+                    noImageCard
                 } else {
                     ShimmerView()
                 }
             }
             .frame(width: proxy.size.width, height: Self.headerHeight + stretch)
             .clipped()
+            .overlay { if photo.videoURL != nil { playButton } }
             .offset(y: -stretch + parallax)
-            .onTapGesture { if image != nil { isZooming = true } }
+            .onTapGesture {
+                // A video day has nothing to zoom into, and the thumbnail is 60
+                // pixels wide, so the tap opens the film instead.
+                if photo.videoURL == nil, image != nil, !isShowingPlaceholder {
+                    isZooming = true
+                }
+            }
         }
         .frame(height: Self.headerHeight)
+    }
+
+    private var noImageCard: some View {
+        ZStack {
+            Rectangle().fill(.quaternary)
+            Label("No picture for this day", systemImage: "photo")
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private var playButton: some View {
+        if let videoURL = photo.videoURL {
+            Link(destination: videoURL) {
+                Image(systemName: "play.fill")
+                    .font(.system(size: 30))
+                    .foregroundStyle(.white)
+                    .padding(26)
+                    .background(.ultraThinMaterial, in: .circle)
+            }
+            .accessibilityLabel("Play video")
+        }
     }
 
     // MARK: - Text
@@ -161,13 +198,38 @@ struct PhotoDetailScreen: View {
     /// file comes first so the screen works with no connection.
     private func loadImage() async {
         isShowingHighRes = false
+        hasNoImage = false
+        isShowingPlaceholder = false
 
         if let fileName = photo.localFileName,
            let local = await ImageStore.shared.loadFavorite(fileName: fileName) {
             image = local
-        } else if let previewURL = photo.previewURL,
-                  let preview = try? await ImageStore.shared.image(for: previewURL) {
-            image = preview
+        } else {
+            // The 4KB archive thumbnail lands in a fraction of the time, so the
+            // screen is never blank while a 1.3MB picture — or a 16MB animation —
+            // is still arriving.
+            if image == nil,
+               let placeholderURL = photo.placeholderURL,
+               let thumbnail = try? await ImageStore.shared.image(for: placeholderURL) {
+                guard !Task.isCancelled else { return }
+                image = thumbnail
+                isShowingPlaceholder = true
+            }
+
+            if let previewURL = photo.previewURL,
+               let preview = try? await ImageStore.shared.image(for: previewURL) {
+                guard !Task.isCancelled else { return }
+                withAnimation(Theme.crossfade) {
+                    image = preview
+                    isShowingPlaceholder = false
+                }
+            }
+        }
+
+        // Every source failed — show that plainly rather than shimmering forever.
+        if image == nil {
+            hasNoImage = true
+            return
         }
 
         guard let fullURL = photo.fullURL, fullURL != photo.previewURL else { return }
@@ -176,6 +238,7 @@ struct PhotoDetailScreen: View {
 
         withAnimation(Theme.crossfade) {
             image = full
+            isShowingPlaceholder = false
             isShowingHighRes = true
         }
     }

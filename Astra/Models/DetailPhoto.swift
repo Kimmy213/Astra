@@ -18,6 +18,11 @@ struct DetailPhoto: Identifiable, Hashable {
     let fullURL: URL?
     /// Set only for favourites, so the detail screen works with no connection.
     let localFileName: String?
+    /// A tiny image shown while the real one downloads.
+    var placeholderURL: URL? = nil
+    /// Present on APOD video days, where there is a film to open rather than a
+    /// picture to look at.
+    var videoURL: URL? = nil
     let metadata: [MetadataItem]
     let shareURL: URL?
     let favoriteDraft: FavoriteDraft
@@ -47,9 +52,14 @@ extension DetailPhoto {
             id: apod.favoriteIdentifier,
             title: apod.title,
             body: apod.explanation,
-            previewURL: apod.isImage ? apod.displayURL : nil,
+            // On a video day the only still image APOD publishes is the archive
+            // thumbnail, so it becomes the picture rather than just a stand-in.
+            // Without this both URLs were nil and the screen shimmered forever.
+            previewURL: apod.isImage ? apod.displayURL : apod.calendarThumbnailURL,
             fullURL: apod.isImage ? apod.highResURL : nil,
             localFileName: nil,
+            placeholderURL: apod.isImage ? apod.calendarThumbnailURL : nil,
+            videoURL: apod.isImage ? nil : apod.displayURL,
             metadata: metadata,
             shareURL: apod.displayURL,
             favoriteDraft: apod.favoriteDraft
