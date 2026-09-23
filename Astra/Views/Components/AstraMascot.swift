@@ -356,10 +356,14 @@ extension EnvironmentValues {
 
 extension View {
     /// Confirms that favouriting really kept the picture on the device: a
-    /// success haptic, a VoiceOver announcement, and the mascot's toast. Only
-    /// fires on the change to "saved"; removing plays a lighter tap.
-    func savedToast(isFavorite: Bool) -> some View {
-        modifier(SavedToastTrigger(isFavorite: isFavorite))
+    /// success haptic, a VoiceOver announcement, and the mascot's toast.
+    ///
+    /// It waits for `isSavedOffline` — the image file actually written — not
+    /// just the star: the row is saved first and the download lands a moment
+    /// later, and a failed download must never be announced as saved. The star
+    /// itself answers with a light tap either way.
+    func savedToast(isFavorite: Bool, isSavedOffline: Bool) -> some View {
+        modifier(SavedToastTrigger(isFavorite: isFavorite, isSavedOffline: isSavedOffline))
     }
 
     /// Hosts the toast. Applied once, at the root of the app.
@@ -370,14 +374,14 @@ extension View {
 
 private struct SavedToastTrigger: ViewModifier {
     let isFavorite: Bool
+    let isSavedOffline: Bool
     @Environment(\.savedToastCenter) private var center
 
     func body(content: Content) -> some View {
         content
-            .sensoryFeedback(trigger: isFavorite) { _, saved in
-                saved ? .success : .impact(weight: .light)
-            }
-            .onChange(of: isFavorite) { _, saved in
+            .sensoryFeedback(.impact(weight: .light), trigger: isFavorite)
+            .sensoryFeedback(.success, trigger: isSavedOffline) { _, saved in saved }
+            .onChange(of: isSavedOffline) { _, saved in
                 guard saved else { return }
                 center.didSave()
                 AccessibilityNotification.Announcement("Saved to this iPhone. It'll open even with no connection.").post()

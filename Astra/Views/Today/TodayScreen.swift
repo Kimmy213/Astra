@@ -57,6 +57,8 @@ private struct TodayContent: View {
     @Query private var matchingFavorites: [FavoritePhoto]
 
     private var isFavorite: Bool { !matchingFavorites.isEmpty }
+    /// True once the picture's file is really on disk, not just starred.
+    private var isSavedOffline: Bool { matchingFavorites.first?.localFileName != nil }
 
     /// A fixed height looks lost on an iPad, where the window is three times
     /// taller than a phone's.
@@ -117,7 +119,7 @@ private struct TodayContent: View {
                 }
             }
         }
-        .savedToast(isFavorite: isFavorite)
+        .savedToast(isFavorite: isFavorite, isSavedOffline: isSavedOffline)
     }
 
     private var hero: some View {

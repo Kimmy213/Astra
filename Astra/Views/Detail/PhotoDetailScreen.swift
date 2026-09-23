@@ -22,6 +22,8 @@ struct PhotoDetailScreen: View {
     private static let headerHeight: CGFloat = 420
 
     private var isFavorite: Bool { !matchingFavorites.isEmpty }
+    /// True once the picture's file is really on disk, not just starred.
+    private var isSavedOffline: Bool { matchingFavorites.first?.localFileName != nil }
 
     init(photo: DetailPhoto) {
         self.photo = photo
@@ -53,7 +55,7 @@ struct PhotoDetailScreen: View {
         .navigationTitle(hasScrolledPastHeader ? photo.title : "")
         .navigationBarTitleDisplayMode(.inline)
         .task(id: photo.id) { await loadImage() }
-        .savedToast(isFavorite: isFavorite)
+        .savedToast(isFavorite: isFavorite, isSavedOffline: isSavedOffline)
         .fullScreenCover(isPresented: $isZooming) { zoomCover }
         .fullScreenCover(isPresented: $isPlayingVideo) {
             if let videoURL = photo.videoURL {

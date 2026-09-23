@@ -172,13 +172,16 @@ private struct FavoriteRow: View {
             // A dark pill keeps the label legible whatever the photo behind it.
             .background(Theme.space.opacity(0.7), in: .capsule)
         Text(DateFormatters.displayString(fromAPIDate: favorite.captureDate))
-        // The headline promise, made visible on every saved picture.
-        HStack(spacing: 3) {
-            Image(systemName: "iphone")
-            Text("On this iPhone")
+        // The headline promise, shown only where it is true: a video day or a
+        // failed download has no file, and the card already says so.
+        if favorite.localFileName != nil {
+            HStack(spacing: 3) {
+                Image(systemName: "iphone")
+                Text("On this iPhone")
+            }
+            .foregroundStyle(.white.opacity(0.85))
+            .accessibilityElement(children: .combine)
         }
-        .foregroundStyle(.white.opacity(0.85))
-        .accessibilityElement(children: .combine)
     }
 }
 
