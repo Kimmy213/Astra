@@ -5,6 +5,8 @@ struct PhotoDetailScreen: View {
     let photo: DetailPhoto
 
     @Environment(\.modelContext) private var context
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Query private var matchingFavorites: [FavoritePhoto]
 
     @State private var image: UIImage?
@@ -20,6 +22,8 @@ struct PhotoDetailScreen: View {
     private static let headerHeight: CGFloat = 420
 
     private var isFavorite: Bool { !matchingFavorites.isEmpty }
+    /// True once the picture's file is really on disk, not just starred.
+    private var isSavedOffline: Bool { matchingFavorites.first?.localFileName != nil }
 
     init(photo: DetailPhoto) {
         self.photo = photo
@@ -37,6 +41,7 @@ struct PhotoDetailScreen: View {
             }
         }
         .coordinateSpace(.named("detailScroll"))
+        .spaceBackground()
         .onScrollGeometryChange(for: Bool.self) { geometry in
             geometry.contentOffset.y > Self.headerHeight - 140
         } action: { _, isPast in
@@ -50,6 +55,7 @@ struct PhotoDetailScreen: View {
         .navigationTitle(hasScrolledPastHeader ? photo.title : "")
         .navigationBarTitleDisplayMode(.inline)
         .task(id: photo.id) { await loadImage() }
+        .savedToast(isFavorite: isFavorite, isSavedOffline: isSavedOffline)
         .fullScreenCover(isPresented: $isZooming) { zoomCover }
         .fullScreenCover(isPresented: $isPlayingVideo) {
             if let videoURL = photo.videoURL {
@@ -65,8 +71,9 @@ struct PhotoDetailScreen: View {
             let minY = proxy.frame(in: .named("detailScroll")).minY
             // Pulled down: the image grows to fill the gap. Scrolled up: it moves
             // at half speed, so the text slides over a slower-moving picture.
-            let stretch = max(0, minY)
-            let parallax = minY < 0 ? -minY * 0.5 : 0
+            // Under Reduce Motion the picture simply scrolls with the page.
+            let stretch = reduceMotion ? 0 : max(0, minY)
+            let parallax = reduceMotion ? 0 : (minY < 0 ? -minY * 0.5 : 0)
 
             Group {
                 if let image {
@@ -118,7 +125,7 @@ struct PhotoDetailScreen: View {
                     .font(.system(size: 30))
                     .foregroundStyle(.white)
                     .padding(26)
-                    .background(.ultraThinMaterial, in: .circle)
+                    .glassEffect(.regular.interactive(), in: .circle)
             }
             .accessibilityLabel("Play video")
         }
@@ -145,10 +152,15 @@ struct PhotoDetailScreen: View {
             Divider()
 
             ForEach(photo.metadata, id: \.self) { item in
-                HStack(alignment: .top, spacing: 12) {
+                // Side by side normally; stacked at the accessibility sizes,
+                // where a fixed label column would squeeze every value.
+                metadataLayout {
                     Text(item.label)
                         .font(.subheadline.weight(.semibold))
-                        .frame(width: 92, alignment: .leading)
+                        .frame(
+                            width: dynamicTypeSize.isAccessibilitySize ? nil : 92,
+                            alignment: .leading
+                        )
                     Text(item.value)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
@@ -156,10 +168,22 @@ struct PhotoDetailScreen: View {
                 }
             }
         }
-        .padding(20)
+        .padding(22)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        // Rises over the bottom of the picture, so the parallax image slides
+        // under a sheet of glass instead of behind an opaque page.
+        .glassPanel(cornerRadius: 28)
+        .padding(.horizontal, 12)
+        .padding(.bottom, 24)
+        .offset(y: -36)
         .frame(maxWidth: 760, alignment: .leading)
         .frame(maxWidth: .infinity, alignment: .center)
-        .background(Color(.systemBackground))
+    }
+
+    private var metadataLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 2))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: 12))
     }
 
     // MARK: - Toolbar
@@ -167,7 +191,7 @@ struct PhotoDetailScreen: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .topBarTrailing) {
-            FavoriteButton(isFavorite: isFavorite) {
+            FavoriteButton(isFavorite: isFavorite, showsGlass: false) {
                 Task { await FavoritesManager(context: context).toggle(photo.favoriteDraft) }
             }
         }
@@ -175,8 +199,6 @@ struct PhotoDetailScreen: View {
             ToolbarItem(placement: .topBarTrailing) {
                 ShareLink(item: shareURL) {
                     Image(systemName: "square.and.arrow.up")
-                        .padding(10)
-                        .background(.ultraThinMaterial, in: .circle)
                 }
             }
         }
@@ -195,7 +217,7 @@ struct PhotoDetailScreen: View {
                         .font(.headline)
                         .foregroundStyle(.white)
                         .padding(12)
-                        .background(.ultraThinMaterial, in: .circle)
+                        .glassEffect(.regular.interactive(), in: .circle)
                 }
                 .padding(20)
             }

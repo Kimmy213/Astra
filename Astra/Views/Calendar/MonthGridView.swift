@@ -39,6 +39,7 @@ struct MonthGridView: View {
             ForEach(orderedWeekdaySymbols, id: \.self) { symbol in
                 Text(symbol)
                     .font(.caption2.weight(.semibold))
+                    .dynamicTypeSize(...DynamicTypeSize.accessibility1)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity)
             }
@@ -79,6 +80,8 @@ private struct DayCell: View {
     let namespace: Namespace.ID
 
     private var calendar: Calendar { DateFormatters.gregorian }
+
+    private var isToday: Bool { calendar.isDateInToday(day) }
 
     private var dayNumber: String {
         String(calendar.component(.day, from: day))
@@ -123,12 +126,22 @@ private struct DayCell: View {
             .overlay(alignment: .bottomLeading) {
                 Text(dayNumber)
                     .font(.caption2.weight(.bold))
+                    .monospacedDigit()
+                    // The cell is a seventh of the screen wide whatever the text
+                    // size, so the badge stops growing before it would turn "23"
+                    // into "…". VoiceOver still reads the full title.
+                    .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+                    .lineLimit(1)
+                    .fixedSize()
                     .foregroundStyle(.white)
-                    .padding(3)
-                    .background(.black.opacity(0.55), in: .rect(cornerRadius: 4))
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
+                    .background(isToday ? Theme.accent : .black.opacity(0.55), in: .capsule)
                     .padding(3)
             }
-            .clipShape(.rect(cornerRadius: 6))
+            .clipShape(.rect(cornerRadius: 8))
+            .overlay { todayRing }
+            .shadow(color: Theme.accent.opacity(isToday ? 0.8 : 0), radius: 8)
             .accessibilityLabel("\(dayNumber). \(apod.title)")
     }
 
@@ -136,13 +149,33 @@ private struct DayCell: View {
         Color.clear
             .aspectRatio(1, contentMode: .fit)
             .overlay {
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(.quaternary.opacity(isSelectable ? 1 : 0.4))
+                // Faint frosted tiles rather than 30 separate glass effects,
+                // which would be a lot of blur to draw for empty squares.
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(.white.opacity(isSelectable ? 0.07 : 0.03))
+                    .strokeBorder(.white.opacity(isSelectable ? 0.12 : 0.06), lineWidth: 0.5)
             }
             .overlay {
                 Text(dayNumber)
                     .font(.caption2)
-                    .foregroundStyle(isSelectable ? .secondary : .quaternary)
+                    .monospacedDigit()
+                    .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                    // Days still to come read as "not yet", not as invisible:
+                    // this was 1.6:1 against the sky, now roughly 4:1.
+                    .foregroundStyle(isSelectable ? Color.secondary : Color.white.opacity(0.42))
             }
+            .overlay { todayRing }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(isSelectable ? "\(dayNumber). No picture" : "\(dayNumber). Not available")
+    }
+
+    @ViewBuilder
+    private var todayRing: some View {
+        if isToday {
+            RoundedRectangle(cornerRadius: 8)
+                .strokeBorder(Theme.accent, lineWidth: 1.5)
+        }
     }
 }

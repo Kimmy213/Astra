@@ -17,7 +17,7 @@
 | Today | Calendar | Mars |
 |:--:|:--:|:--:|
 | <img src="docs/screenshots/today.png" width="230"> | <img src="docs/screenshots/calendar.png" width="230"> | <img src="docs/screenshots/mars.png" width="230"> |
-| Astronomy Picture of the Day, with a read-more that expands in place | A whole month in one request, tap the title to jump to any month back to 1995 | 100 results in a lazy grid, filtered by rover, keyword and year |
+| Astronomy Picture of the Day; tap Astra in the corner for a space fact | A whole month in one request, tap the title to jump to any month back to 1995 | 100 results in a lazy grid, filtered by rover, keyword and year |
 
 | Favorites | Detail |
 |:--:|:--:|

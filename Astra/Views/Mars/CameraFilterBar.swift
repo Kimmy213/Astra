@@ -1,24 +1,26 @@
 import SwiftUI
 
-/// Horizontally scrolling keyword chips. The selected chip's filled capsule is
-/// a single view that slides between chips via `matchedGeometryEffect`, rather
-/// than one capsule fading out while another fades in.
+/// Horizontally scrolling keyword chips, each a Liquid Glass pill. The selected
+/// chip is tinted with the accent, and because they share one
+/// `GlassEffectContainer` the tint flows between neighbours as it moves.
 struct CameraFilterBar: View {
     let keywords: [String]
     @Binding var selection: String?
 
-    @Namespace private var capsuleNamespace
+    @Namespace private var glassNamespace
 
     var body: some View {
         ScrollView(.horizontal) {
-            HStack(spacing: 8) {
-                chip(title: "All", value: nil)
-                ForEach(keywords, id: \.self) { keyword in
-                    chip(title: keyword, value: keyword)
+            GlassEffectContainer(spacing: 8) {
+                HStack(spacing: 8) {
+                    chip(title: "All", value: nil)
+                    ForEach(keywords, id: \.self) { keyword in
+                        chip(title: keyword, value: keyword)
+                    }
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 2)
+            .padding(.vertical, 4)
         }
         .scrollIndicators(.hidden)
     }
@@ -29,27 +31,38 @@ struct CameraFilterBar: View {
         return Button {
             withAnimation(Theme.tap) { selection = value }
         } label: {
-            Text(title)
-                .font(.subheadline.weight(.medium))
+            Text(Self.displayTitle(for: title))
+                .font(.subheadline.weight(isSelected ? .semibold : .medium))
                 .foregroundStyle(isSelected ? .white : .primary)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background {
-                    if isSelected {
-                        Capsule()
-                            .fill(.tint)
-                            .matchedGeometryEffect(id: "selectedChip", in: capsuleNamespace)
-                    } else {
-                        Capsule().fill(.quaternary)
-                    }
-                }
+                .padding(.horizontal, 16)
+                .frame(minHeight: 44)
+                .glassEffect(
+                    isSelected
+                        ? .regular.tint(Theme.accent.opacity(0.75)).interactive()
+                        : .regular.interactive(),
+                    in: .capsule
+                )
+                .glassEffectID(title, in: glassNamespace)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(title)
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+    }
+
+    /// NASA's keywords are exact search terms, so they stay untouched for the
+    /// API; only the long mission name is shortened on the chip.
+    static func displayTitle(for keyword: String) -> String {
+        switch keyword {
+        case "Mars Science Laboratory (MSL)": "MSL mission"
+        case "Mars 2020": "Mars 2020 mission"
+        default: keyword
+        }
     }
 }
 
 #Preview {
     @Previewable @State var selection: String? = "Mars"
     CameraFilterBar(keywords: Rover.curiosity.keywords, selection: $selection)
+        .spaceBackground()
+        .preferredColorScheme(.dark)
 }

@@ -32,7 +32,7 @@ struct APODVideoScreen: View {
                     .font(.headline)
                     .foregroundStyle(.white)
                     .padding(12)
-                    .background(.ultraThinMaterial, in: .circle)
+                    .glassEffect(.regular.interactive(), in: .circle)
             }
             .padding(20)
         }

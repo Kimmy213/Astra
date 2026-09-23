@@ -19,6 +19,7 @@ struct CalendarScreen: View {
             .frame(maxWidth: 720)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 12)
+            .spaceBackground()
             .navigationTitle("Calendar")
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: DetailPhoto.self) { photo in
@@ -34,12 +35,9 @@ struct CalendarScreen: View {
 
     private var monthHeader: some View {
         HStack {
-            Button {
+            monthArrow("chevron.left", label: "Previous month", isEnabled: canGoBack) {
                 step(by: -1)
-            } label: {
-                Image(systemName: "chevron.left")
             }
-            .disabled(!canGoBack)
 
             Spacer()
 
@@ -48,10 +46,16 @@ struct CalendarScreen: View {
             } label: {
                 HStack(spacing: 4) {
                     Text(DateFormatters.monthTitle(for: month))
-                        .font(.headline)
+                        .font(Theme.title(.title3))
+                        // "September 2026" hyphenated over four lines at the
+                        // largest sizes; one line that shrinks reads far better.
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
                         .contentTransition(.numericText())
                     Image(systemName: "chevron.down")
                         .font(.caption2.weight(.semibold))
+                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 }
             }
             .foregroundStyle(.primary)
@@ -65,14 +69,33 @@ struct CalendarScreen: View {
 
             Spacer()
 
-            Button {
+            monthArrow("chevron.right", label: "Next month", isEnabled: canGoForward) {
                 step(by: 1)
-            } label: {
-                Image(systemName: "chevron.right")
             }
-            .disabled(!canGoForward)
         }
+        .padding(.top, 4)
         .padding(.horizontal, 4)
+    }
+
+    /// A full 44pt glass disc. The glyph is capped so it stays inside the disc
+    /// at the largest text sizes instead of spilling out of it.
+    private func monthArrow(
+        _ systemImage: String,
+        label: String,
+        isEnabled: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.body.weight(.semibold))
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                .frame(width: 44, height: 44)
+                .glassEffect(.regular.interactive(), in: .circle)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(isEnabled ? Theme.accent : Color.white.opacity(0.3))
+        .disabled(!isEnabled)
+        .accessibilityLabel(label)
     }
 
     @ViewBuilder

@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct RootTabView: View {
+    @State private var savedToastCenter = SavedToastCenter()
+
     var body: some View {
         TabView {
             TodayScreen()
@@ -15,6 +17,10 @@ struct RootTabView: View {
             FavoritesScreen()
                 .tabItem { Label("Favorites", systemImage: "star") }
         }
+        // Gives the pictures the whole screen while scrolling; the glass bar
+        // comes back as soon as you scroll up.
+        .tabBarMinimizeBehavior(.onScrollDown)
+        .savedToastHost(savedToastCenter)
     }
 }
 
