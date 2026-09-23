@@ -11,6 +11,7 @@ struct TodayScreen: View {
                 content
             }
             .refreshable { await viewModel.load(context: context) }
+            .spaceBackground()
             .navigationTitle("Today")
             .navigationBarTitleDisplayMode(.inline)
             .task {
@@ -79,6 +80,15 @@ private struct TodayContent: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             hero
+                // Astra perches in the picture's corner; its bubble opens
+                // downward over the page, so the picture draws above what
+                // follows it.
+                .overlay(alignment: .topTrailing) {
+                    FunFactMascot()
+                        .padding(.top, 10)
+                        .padding(.trailing, 12)
+                }
+                .zIndex(1)
 
             // At the largest text sizes the overlaid title would cover most of
             // the picture, so it moves below it instead.
@@ -86,6 +96,8 @@ private struct TodayContent: View {
                 titleBlock
                     .foregroundStyle(.primary)
                     .padding(20)
+                    .glassPanel()
+                    .padding([.horizontal, .top], 16)
             }
 
             if showingSavedCopy {
@@ -96,6 +108,16 @@ private struct TodayContent: View {
 
             explanation
         }
+        // Same place as on the detail screen: the toolbar, not floating over
+        // the picture, so saving works the same way everywhere.
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                FavoriteButton(isFavorite: isFavorite, showsGlass: false) {
+                    Task { await FavoritesManager(context: context).toggle(apod.favoriteDraft) }
+                }
+            }
+        }
+        .savedToast(isFavorite: isFavorite)
     }
 
     private var hero: some View {
@@ -104,11 +126,23 @@ private struct TodayContent: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: heroHeight)
                 .clipped()
+                // The bottom of the picture dissolves into the starfield
+                // instead of ending on a hard edge.
+                .mask {
+                    LinearGradient(
+                        stops: [
+                            .init(color: .black, location: 0.55),
+                            .init(color: .clear, location: 1),
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                }
 
             if !dynamicTypeSize.isAccessibilitySize {
                 // Keeps white text legible over whatever the picture happens to be.
                 LinearGradient(
-                    colors: [.clear, .black.opacity(0.8)],
+                    colors: [.clear, .black.opacity(0.45), .clear],
                     startPoint: .top,
                     endPoint: .bottom
                 )
@@ -120,12 +154,6 @@ private struct TodayContent: View {
                     .foregroundStyle(.white)
                     .padding(20)
             }
-        }
-        .overlay(alignment: .topTrailing) {
-            FavoriteButton(isFavorite: isFavorite) {
-                Task { await FavoritesManager(context: context).toggle(apod.favoriteDraft) }
-            }
-            .padding(16)
         }
     }
 
@@ -173,7 +201,8 @@ private struct TodayContent: View {
             .font(.footnote)
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.yellow.opacity(0.15))
+            .glassEffect(.regular.tint(.yellow.opacity(0.25)), in: .rect(cornerRadius: 16))
+            .padding([.horizontal, .top], 16)
     }
 
     private var explanation: some View {
@@ -186,8 +215,13 @@ private struct TodayContent: View {
                 withAnimation(Theme.tap) { isExpanded.toggle() }
             }
             .font(.subheadline.weight(.semibold))
+            .buttonStyle(.glass)
+            .controlSize(.large)
         }
         .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassPanel()
+        .padding(16)
         .frame(maxWidth: Self.readableWidth, alignment: .leading)
         .frame(maxWidth: .infinity, alignment: .center)
     }

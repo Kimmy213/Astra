@@ -46,7 +46,12 @@ struct StarfieldView: View {
                 }
             }
         }
-        .background(Theme.spaceGradient)
+        .background {
+            ZStack {
+                Theme.spaceGradient
+                Theme.nebulaGlow
+            }
+        }
         .accessibilityHidden(true)
     }
 }
