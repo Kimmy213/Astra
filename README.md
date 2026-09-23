@@ -122,5 +122,5 @@ APIs: [APOD](https://api.nasa.gov) and the [NASA Image and Video Library](https:
 ---
 
 <div align="center">
-<sub>iOS Development — Project 02</sub>
+<sub>IOS Development — Project 02</sub>
 </div>
