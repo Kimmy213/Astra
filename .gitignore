@@ -1,4 +1,5 @@
-# API keys — never commit. Teammates copy Secrets.example.swift instead.
+# Old per-person key file, no longer used. The key now lives in
+# Astra/Support/APIKeys.swift. Kept ignored so existing local copies stay out of Git.
 Secrets.swift
 
 # Xcode

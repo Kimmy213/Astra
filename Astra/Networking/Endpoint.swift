@@ -17,7 +17,7 @@ struct Endpoint {
         components.path = path
         // Appended in one place so no factory method below can forget the key.
         components.queryItems = requiresAPIKey
-            ? queryItems + [URLQueryItem(name: "api_key", value: Secrets.nasaAPIKey)]
+            ? queryItems + [URLQueryItem(name: "api_key", value: APIKeys.nasa)]
             : queryItems
         return components.url
     }

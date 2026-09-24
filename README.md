@@ -40,23 +40,9 @@
 
 ```bash
 git clone https://github.com/Kimmy213/Astra.git
-cd Astra
-cp Astra/Secrets.example.swift Astra/Secrets.swift
 ```
 
-Then put your own key into `Astra/Secrets.swift`:
-
-```swift
-enum Secrets {
-    static let nasaAPIKey = "YOUR_KEY_HERE"
-}
-```
-
-Keys are free and instant from [api.nasa.gov](https://api.nasa.gov) — name and email, no approval wait. `DEMO_KEY` works but is capped at 30 requests an hour, which a single month in the Calendar will exhaust.
-
-`Secrets.swift` is gitignored and excluded from the build target, so your key never reaches the repository.
-
-Open `Astra.xcodeproj` and run. Requires Xcode 26 and iOS 26.
+Open `Astra.xcodeproj` and run. Requires Xcode 26 and iOS 26. There is no setup step: the team's NASA API key is committed in `Astra/Support/APIKeys.swift`, which is acceptable only because this repository is private. If the repository is ever made public, generate a new key at [api.nasa.gov](https://api.nasa.gov) first.
 
 ---
 

@@ -10,22 +10,9 @@
 		AA0000000000000000000004 /* Astra.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Astra.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		AA0000000000000000000010 /* Exceptions for "Astra" folder in "Astra" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Secrets.example.swift,
-			);
-			target = AA0000000000000000000005 /* Astra */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		AA000000000000000000000F /* Astra */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				AA0000000000000000000010 /* Exceptions for "Astra" folder in "Astra" target */,
-			);
 			path = Astra;
 			sourceTree = "<group>";
 		};
